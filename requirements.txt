@@ -5,4 +5,5 @@ tokenizers==0.21.0
 seqeval==1.2.2
 evaluate==0.4.3
 torch==2.6.0
+black==24.10.0
 ipynb

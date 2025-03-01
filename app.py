@@ -5,6 +5,7 @@ import evaluate
 from transformers import BertTokenizerFast
 from transformers import DataCollatorForTokenClassification
 from transformers import AutoModelForTokenClassification
+from transformers import TrainingArguments, Trainer
 
 # load dataset
 conll2003 = datasets.load_dataset("conll2003", trust_remote_code=True)
@@ -68,3 +69,57 @@ semantic role labeling and so on.'''
 
 metric = evaluate.load("seqeval")
 
+# defining arguments for the trainer class
+args=TrainingArguments(
+    "test-ner",
+    evaluation_strategy = "epoch",
+    learning_rate=2e-5,
+    per_device_train_batch_size=16,
+    per_device_eval_batch_size=16,
+    num_train_epochs=1,
+    weight_decay=0.01,
+    report_to="none"  # Disable wandb logging
+)
+
+# einitializing data collector to pass data in batches to trainer
+data_collator = DataCollatorForTokenClassification(tokenizer)
+
+# defining function to compute metric
+def compute_metrics(eval_preds):
+    pred_logits, labels = eval_preds
+
+    pred_logits = np.argmax(pred_logits, axis=2)
+    # the logits and the probabilities are in the same order,
+    # so we don’t need to apply the softmax
+
+    # We remove all the values where the label is -100
+    predictions = [
+        [label_list[eval_preds] for (eval_preds, l) in zip(prediction, label) if l != -100]
+        for prediction, label in zip(pred_logits, labels)
+    ]
+
+    true_labels = [
+      [label_list[l] for (eval_preds, l) in zip(prediction, label) if l != -100]
+       for prediction, label in zip(pred_logits, labels)
+   ]
+    results = metric.compute(predictions=predictions, references=true_labels)
+
+    return {
+          "precision": results["overall_precision"],
+          "recall": results["overall_recall"],
+          "f1": results["overall_f1"],
+          "accuracy": results["overall_accuracy"],
+  }
+
+# initilizing trainer
+trainer=Trainer(
+model,
+args,
+train_dataset=tokenized_and_nermapped_datasets["train"],
+eval_dataset=tokenized_and_nermapped_datasets["validation"],
+data_collator=data_collator,
+tokenizer=tokenizer,
+compute_metrics=compute_metrics
+)
+
+trainer.train()

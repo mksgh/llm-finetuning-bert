@@ -17,10 +17,11 @@ tokenizer = BertTokenizerFast.from_pretrained(model_to_load)
 
 def tokenize_and_align_labels(input_sentence, label_all_tokens=True):
 
-    #tokeinze ids
-    tokenized_inputs = tokenizer(input_sentence["tokens"], truncation=True, is_split_into_words=True)
+    # tokeinze ids
+    tokenized_inputs = tokenizer(
+        input_sentence["tokens"], truncation=True, is_split_into_words=True
+    )
     labels = []
-
 
     for i, label in enumerate(input_sentence["ner_tags"]):
         word_ids = tokenized_inputs.word_ids(batch_index=i)
@@ -56,23 +57,27 @@ def tokenize_and_align_labels(input_sentence, label_all_tokens=True):
 
 
 # map enitire data with NER tags
-tokenized_and_nermapped_datasets = conll2003.map(tokenize_and_align_labels, batched=True)
+tokenized_and_nermapped_datasets = conll2003.map(
+    tokenize_and_align_labels, batched=True
+)
 
 # Instantiating bert-based-uncased model
-model = AutoModelForTokenClassification.from_pretrained("bert-base-uncased",num_labels=9)
+model = AutoModelForTokenClassification.from_pretrained(
+    "bert-base-uncased", num_labels=9
+)
 
 # loading evaluation metric
 
-''' info:  seqeval is a Python framework for sequence labeling evaluation. seqeval can evaluate 
+""" info:  seqeval is a Python framework for sequence labeling evaluation. seqeval can evaluate 
 the performance of chunking tasks such as named-entity recognition, part-of-speech tagging, 
-semantic role labeling and so on.'''
+semantic role labeling and so on."""
 
 metric = evaluate.load("seqeval")
 
 # defining arguments for the trainer class
-args=TrainingArguments(
+args = TrainingArguments(
     "test-ner",
-    evaluation_strategy = "epoch",
+    evaluation_strategy="epoch",
     learning_rate=2e-5,
     per_device_train_batch_size=16,
     per_device_eval_batch_size=16,
@@ -80,11 +85,13 @@ args=TrainingArguments(
     weight_decay=0.01,
     report_to="none",  # Disable wandb logging
     save_strategy="steps",
-    save_steps= 0.2
+    save_steps=0.9,
+    resume_from_checkpoint=True
 )
 
 # einitializing data collector to pass data in batches to trainer
 data_collator = DataCollatorForTokenClassification(tokenizer)
+
 
 # defining function to compute metric
 def compute_metrics(eval_preds):
@@ -96,33 +103,37 @@ def compute_metrics(eval_preds):
 
     # We remove all the values where the label is -100
     predictions = [
-        [label_list[eval_preds] for (eval_preds, l) in zip(prediction, label) if l != -100]
+        [
+            label_list[eval_preds]
+            for (eval_preds, l) in zip(prediction, label)
+            if l != -100
+        ]
         for prediction, label in zip(pred_logits, labels)
     ]
 
     true_labels = [
-      [label_list[l] for (eval_preds, l) in zip(prediction, label) if l != -100]
-       for prediction, label in zip(pred_logits, labels)
-   ]
+        [label_list[l] for (eval_preds, l) in zip(prediction, label) if l != -100]
+        for prediction, label in zip(pred_logits, labels)
+    ]
     results = metric.compute(predictions=predictions, references=true_labels)
 
     return {
-          "precision": results["overall_precision"],
-          "recall": results["overall_recall"],
-          "f1": results["overall_f1"],
-          "accuracy": results["overall_accuracy"],
-  }
+        "precision": results["overall_precision"],
+        "recall": results["overall_recall"],
+        "f1": results["overall_f1"],
+        "accuracy": results["overall_accuracy"],
+    }
+
 
 # initilizing trainer
-trainer=Trainer(
-model,
-args,
-train_dataset=tokenized_and_nermapped_datasets["train"],
-eval_dataset=tokenized_and_nermapped_datasets["validation"],
-data_collator=data_collator,
-tokenizer=tokenizer,
-compute_metrics=compute_metrics,
-resume_from_checkpoint=True
+trainer = Trainer(
+    model,
+    args,
+    train_dataset=tokenized_and_nermapped_datasets["train"],
+    eval_dataset=tokenized_and_nermapped_datasets["validation"],
+    data_collator=data_collator,
+    tokenizer=tokenizer,
+    compute_metrics=compute_metrics
 )
 
 trainer.train()

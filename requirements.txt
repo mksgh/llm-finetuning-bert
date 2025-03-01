@@ -1,9 +1,10 @@
 transformers[torch]==4.49.0
-datasets==2.8.0
+datasets
 accelerate==1.4.0
 tokenizers==0.21.0
 seqeval==1.2.2
 evaluate==0.4.3
 torch==2.6.0
 black==24.10.0
+fsspec==2023.9.2
 ipynb

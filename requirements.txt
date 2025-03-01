@@ -1,5 +1,5 @@
 transformers[torch]==4.49.0
-datasets==3.3.2
+datasets==2.8.0
 accelerate==1.4.0
 tokenizers==0.21.0
 seqeval==1.2.2

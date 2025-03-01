@@ -8,7 +8,7 @@ from transformers import AutoModelForTokenClassification
 from transformers import TrainingArguments, Trainer
 
 # load dataset
-conll2003 = datasets.load_dataset("conll2003", trust_remote_code=True)
+conll2003 = datasets.load_dataset("conll2003")
 
 # load model specific tokenizer
 model_to_load = "bert-base-uncased"
@@ -78,7 +78,9 @@ args=TrainingArguments(
     per_device_eval_batch_size=16,
     num_train_epochs=1,
     weight_decay=0.01,
-    report_to="none"  # Disable wandb logging
+    report_to="none",  # Disable wandb logging
+    save_strategy="steps",
+    save_steps= 0.2
 )
 
 # einitializing data collector to pass data in batches to trainer
@@ -119,7 +121,8 @@ train_dataset=tokenized_and_nermapped_datasets["train"],
 eval_dataset=tokenized_and_nermapped_datasets["validation"],
 data_collator=data_collator,
 tokenizer=tokenizer,
-compute_metrics=compute_metrics
+compute_metrics=compute_metrics,
+resume_from_checkpoint=True
 )
 
 trainer.train()

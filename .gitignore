@@ -1,2 +1,8 @@
 #environment
 venev-llm-ft
+
+# dataset
+conll2003.hf
+
+# model
+saved-model

@@ -1,5 +1,6 @@
 import os
 import datasets
+import json
 import numpy as np
 import evaluate
 from transformers import BertTokenizerFast
@@ -9,6 +10,9 @@ from transformers import TrainingArguments, Trainer
 
 # load dataset
 conll2003 = datasets.load_dataset("conll2003")
+
+# list of NER tags
+ner_tags_list=conll2003["train"].features["ner_tags"].feature. names
 
 # load model specific tokenizer
 model_to_load = "bert-base-uncased"
@@ -104,7 +108,7 @@ def compute_metrics(eval_preds):
     # We remove all the values where the label is -100
     predictions = [
         [
-            label_list[eval_preds]
+            ner_tags_list[eval_preds]
             for (eval_preds, l) in zip(prediction, label)
             if l != -100
         ]
@@ -112,7 +116,7 @@ def compute_metrics(eval_preds):
     ]
 
     true_labels = [
-        [label_list[l] for (eval_preds, l) in zip(prediction, label) if l != -100]
+        [ner_tags_list[l] for (eval_preds, l) in zip(prediction, label) if l != -100]
         for prediction, label in zip(pred_logits, labels)
     ]
     results = metric.compute(predictions=predictions, references=true_labels)
@@ -136,4 +140,20 @@ trainer = Trainer(
     compute_metrics=compute_metrics
 )
 
+# training model - fine tuning for NER tags
 trainer.train()
+
+# saving model 
+model.save_pretrained("./saved-model/ner_model")
+
+
+# updating the model config file
+model_config=json.load(open("./saved-model/ner_model/config.json"))
+
+id2label = {str(i): label for i,label in enumerate(ner_tags_list)}
+label2id = {label: str(i) for i,label in enumerate(ner_tags_list)}
+
+model_config["id2label"]=id2label
+model_config["label2id"] = label2id
+
+json.dump(model_config,open("./saved-model/ner_model/config.json","w"))

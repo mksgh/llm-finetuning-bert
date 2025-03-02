@@ -4,5 +4,6 @@ venev-llm-ft
 # dataset
 conll2003.hf
 
-# model
+# model & its checkpoints
 saved-model
+test-ner

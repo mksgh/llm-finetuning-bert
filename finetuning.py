@@ -9,10 +9,10 @@ from transformers import AutoModelForTokenClassification
 from transformers import TrainingArguments, Trainer
 
 # load dataset
-conll2003 = datasets.load_dataset("conll2003")
+conll2003 = datasets.load_dataset("lhoestq/conll2003")
 
 # list of NER tags
-ner_tags_list=conll2003["train"].features["ner_tags"].feature. names
+ner_tags_list=conll2003["train"].features["ner_tags"].feature.names
 
 # load model specific tokenizer
 model_to_load = "bert-base-uncased"
